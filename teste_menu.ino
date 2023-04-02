@@ -17,14 +17,7 @@ PushButton buttonR(pinBtn3);
 //criando objeto display
 Adafruit_PCD8544 display = Adafruit_PCD8544(3, 4, 5, 6, 7);
 
-//criando listas de itens
-String fruits[] = {"Morango", "Pera", "Banana", "Cereja", "sair"};
-byte quantidades[] = {5, 2, 10, 8};
-byte valorNutri[] = {10, 20, 25, 12};
-
-int8_t fome = 100;
-
-struct menu{
+struct Menu{
   //nome da aba
   String name;
   //primeira coluna, a qual vai deter o nome dos itens ou opções
@@ -37,28 +30,39 @@ struct menu{
   int8_t vleMin;
   //valor máximo, representa a quantidade total de itens inseridos
   int8_t vleMax;
-  //representa o indice referente ao array colum1
+  //representa o indice referente ao array colum1, ou seja, qual opção selecionada
   int8_t index;
   //True para apresentar a caixa de notificação e false para não apresenta-la
   bool notifBox;
-  };
+};
 
-struct box{
+struct Box{
   //nome da caixa de notificação
-  String nameBox;
+  String messageBox;
   //valor que sera apresentado na caixa de notificação
   int8_t valueBox;  
+  //Eixo x do cursor
+  int8_t cursorX;
+  //Eixo y do cursor
+  int8_t cursorY;
 };
 
 //Setando os dados em uma struct do tipo menu
-menu Cardapio = { "Cardapio",
-                  {"Morango", "Pera", "Banana", "Cereja", "exit"},
+Menu cardapio = { "Cardapio",
+                  {"Morango", "Pera", "Banana", "Cereja", "sair"},
                   {5, 2, 10, 8},
                   {10, 20, 25, 12},
                   0, 
                   4,
                   1,
-                  true};
+                  true
+                };
+
+Box card = { "Fome:",
+                  100,
+                  33,
+                  39                 
+                };
 
 //Variaveis para controle de tempo
 unsigned long delay1 = 0;
@@ -79,11 +83,13 @@ void setup(){
 
 void loop(){
   //Serve para desenhar o menu
-  drawMenu();
+  drawMenu(cardapio, card);
   
   //Atualiza o display
   display.clearDisplay();
   display.display();
+
+  Serial.println("Finish");
 }
 
 
@@ -115,34 +121,36 @@ int8_t navegation(int8_t min, int8_t max, int8_t ind){
   return i[ind];
 }
 
-void reduct(int8_t estoque){
+void reduct(int8_t estoque, Box& v, Menu& n){
   if((millis() - delay2) > 100){
       if(buttonX.clickBtn() &&
-        (quantidades[estoque] > 0) &&
-        (fome > 0)
+        (n.colum2[estoque] > 0) &&
+        (v.valueBox > 0)
         ){
-          quantidades[estoque] -= 1;
-          fome = fome - valorNutri[estoque];
+          n.colum2[estoque] -= 1;
+          v.valueBox = v.valueBox - n.valorAdd[estoque];
           delay2 = millis();
       }      
   }
 }
 
-bool exit(bool show, int8_t vle, int8_t Max){
-  if(buttonX.clickBtn() && vle == Max){
+bool sair(bool show, int8_t vle, int8_t max){
+    
+  if((vle == max) && (buttonX.clickBtn())){
+    Serial.println("Tentando Desligar");
     show = !show;
   }
   return show;
 }
 
-void drawMenu(){
+void drawMenu(Menu& m, Box& n){
   while(showCardapio == true){
     
     int mult = 0;
 
-    int8_t value = navegation(Cardapio.vleMin, Cardapio.vleMax, Cardapio.index);
-    reduct(value);
-    showCardapio = exit(showCardapio, value, Cardapio.vleMax);
+    int8_t value = navegation(m.vleMin, m.vleMax, m.index);
+
+    reduct(value, n, m);
 
     static int8_t ip = 0;
 
@@ -156,16 +164,16 @@ void drawMenu(){
     display.setTextSize(1);
     display.setTextColor(BLACK);
     display.setCursor(10,2);
-    display.println("Cardapio");
+    display.println(m.name);
 
     display.setCursor(0, 12);
 
     for(int i = ip; i < (3 + ip); i++){
       
       if(value == i){
-        display.print("-> ");display.println(fruits[i]);
+        display.print("-> ");display.println(m.colum1[i]);
       } else {
-        display.print("> ");display.println(fruits[i]);
+        display.print("> ");display.println(m.colum1[i]);
       }
 
     }
@@ -176,29 +184,34 @@ void drawMenu(){
 
       display.setCursor(65, y);    
       
-      if(i == Cardapio.vleMax){
+      if(i == m.vleMax){
         display.print("");
       } else {
         if(quantidades[i] < 10){
-          display.print("x0"); display.println(quantidades[i]);
+          display.print("x0"); display.println(m.colum2[i]);
         } else {
-          display.print("x"); display.println(quantidades[i]);
+          display.print("x"); display.println(m.colum2[i]);
         }
       }
 
       mult += 1;
 
     }
-    drawNotfBox();
 
+    if(m.notifBox == true){
+      drawNotfBox(n);
+    }
+
+    showCardapio = sair(showCardapio, value, m.vleMax);
+    
     display.display();
     display.clearDisplay();
   }
 }
 
-void drawNotfBox(){
+void drawNotfBox(Box& notf){
   display.setTextSize(1);
   display.drawRect(0, 37, 84, 11, BLACK);
-  display.setCursor(33, 39);
-  display.print("Fome:"); display.println(fome);
+  display.setCursor(notf.cursorX, notf.cursorY);
+  display.print(notf.messageBox); display.println(notf.valueBox);
 }
