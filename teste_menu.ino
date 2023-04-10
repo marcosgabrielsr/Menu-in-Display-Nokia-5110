@@ -71,6 +71,9 @@ unsigned long delay2 = 0;
 //serve para fazer controle do que será apresentado
 bool showCardapio = true;
 
+//declarando funções
+void drawNotfBox(Box& notf);
+
 void setup(){
   //Iniciando monitor serial
   Serial.begin(9600);
@@ -166,8 +169,37 @@ void drawMenu(Menu& m, Box& n){
     display.setCursor(10,2);
     display.println(m.name);
 
-    display.setCursor(0, 12);
+    int8_t i;
+    if(value <= 2){
+      i = 0;
+    } else {
+      i = 2 + 1 * int8_t(value / 3);
+    }
+    int8_t lim = i + 2;
 
+    display.setCursor(0, 12);
+    while(i <= lim){
+      if(i <= m.vleMax){
+        if(value == i){
+          display.print("-> "); display.print(m.colum1[i]);
+          if(i == m.vleMax){
+            display.print("");
+          } else {
+            if(m.colum2[i] < 10){
+              display.print(" x0"); display.println(m.colum2[i]);            
+            } else {
+              display.print(" x"); display.println(m.colum2[i]);
+            }
+          }
+        } else if(value != i){
+          display.print("> "); display.println(m.colum1[i]);
+        }
+      } else {
+        display.print("");
+      }
+      i++;
+    }
+    /**
     for(int i = ip; i < (3 + ip); i++){
       
       if(value == i){
@@ -187,7 +219,7 @@ void drawMenu(Menu& m, Box& n){
       if(i == m.vleMax){
         display.print("");
       } else {
-        if(quantidades[i] < 10){
+        if(m.colum2[i] < 10){
           display.print("x0"); display.println(m.colum2[i]);
         } else {
           display.print("x"); display.println(m.colum2[i]);
@@ -195,15 +227,16 @@ void drawMenu(Menu& m, Box& n){
       }
 
       mult += 1;
-
-    }
-
+    **/
     if(m.notifBox == true){
       drawNotfBox(n);
     }
 
     showCardapio = sair(showCardapio, value, m.vleMax);
-    
+    //Serial.print("teste string.length: ");
+    //Serial.println(m.colum1[0].length());
+
+
     display.display();
     display.clearDisplay();
   }
