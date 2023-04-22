@@ -19,26 +19,24 @@ Adafruit_PCD8544 display = Adafruit_PCD8544(3, 4, 5, 6, 7);
 
 struct Menu{
   //nome da aba
-  String name;
+  char name[10];
   //primeira coluna, a qual vai deter o nome dos itens ou opções
-  String colum1[10];
+  char colum1[10][10];
   //segunda coluna, a qual vai deter valores inteiros indicando quantidades ou indices de porcentagem
   int8_t colum2[10];
   //valor adcional, sera o valor utilizado no segundo plano para contas
   int8_t valorAdd[10];
-  //valor minimo, nesse caso se refere a menor quantidad de itens
-  int8_t vleMin;
-  //valor máximo, representa a quantidade total de itens inseridos
-  int8_t vleMax;
   //representa o indice referente ao array colum1, ou seja, qual opção selecionada
   int8_t index;
   //True para apresentar a caixa de notificação e false para não apresenta-la
   bool notifBox;
+  //Define o tipo do menu
+  char type;
 };
 
 struct Box{
   //nome da caixa de notificação
-  String messageBox;
+  char messageBox[10];
   //valor que sera apresentado na caixa de notificação
   int8_t valueBox;  
   //Eixo x do cursor
@@ -52,10 +50,9 @@ Menu cardapio = { "Cardapio",
                   {"Morango", "Pera", "Banana", "Cereja", "sair"},
                   {5, 2, 10, 8},
                   {10, 20, 25, 12},
-                  0, 
-                  4,
                   1,
-                  true
+                  true,
+                  'D'
                 };
 
 Box card = { "Fome:",
@@ -92,16 +89,20 @@ void loop(){
   display.clearDisplay();
   display.display();
 
+  //Escreve esta mensagem quando o usuário sai do menu
   Serial.println("Finish");
 }
 
-
-int8_t navegation(int8_t min, int8_t max, int8_t ind){
+//Esta função serve para navegar entre as funções do menu, lembrando que elas são definidas nas colunas da estrutura anterior
+int8_t navegation(int8_t max, int8_t ind){
+  //Esta variável serve para salvar os dados que serão retornados para cada função segundo o seu indíce
   static int8_t i[2] = {0, 0};
 
+  //Nesta parte verificamos se o botão esquerdo foi apertado, para isso primeiro ele verifica se há um intervalo entre o clique anterior até
+  //o momento atual
   if((millis() - delay1) > 100){
       if(buttonL.clickBtn()){
-          if((i[ind] >= min) && (i[ind] < max)){
+          if((i[ind] >= 0) && (i[ind] < max)){
               i[ind] = i[ind] + 1;
           } else {
               i[ind] = i[ind];
@@ -111,7 +112,7 @@ int8_t navegation(int8_t min, int8_t max, int8_t ind){
       }
 
       if(buttonR.clickBtn()){
-          if((i[ind] <= max) && (i[ind] > min)){
+          if((i[ind] <= max) && (i[ind] > 0)){
               i[ind] = i[ind] - 1;
           } else {
               i[ind] = i[ind];
@@ -119,12 +120,14 @@ int8_t navegation(int8_t min, int8_t max, int8_t ind){
 
           delay1 = millis();
       }
-
   }
+  //retorna um valor de acordo com indice do menu
   return i[ind];
 }
 
+//Essa função serve para reduzir os valores da coluna 2 referente a um índice
 void reduct(int8_t estoque, Box& v, Menu& n){
+  //
   if((millis() - delay2) > 100){
       if(buttonX.clickBtn() &&
         (n.colum2[estoque] > 0) &&
@@ -138,7 +141,6 @@ void reduct(int8_t estoque, Box& v, Menu& n){
 }
 
 bool sair(bool show, int8_t vle, int8_t max){
-    
   if((vle == max) && (buttonX.clickBtn())){
     Serial.println("Tentando Desligar");
     show = !show;
@@ -147,21 +149,14 @@ bool sair(bool show, int8_t vle, int8_t max){
 }
 
 void drawMenu(Menu& m, Box& n){
-  while(showCardapio == true){
-    
-    int mult = 0;
 
-    int8_t value = navegation(m.vleMin, m.vleMax, m.index);
+  int8_t max = (sizeof(m.colum2)/sizeof(int)) - 1;
+  Serial.println(max);
+
+  while(showCardapio == true){
+    int8_t value = navegation(max, m.index);
 
     reduct(value, n, m);
-
-    static int8_t ip = 0;
-
-    if((value - 2) > 0){
-        ip = value - 2;
-    } else {
-      ip = 0;
-    }
 
     display.drawRect(0, 0, 84, 11, BLACK);
     display.setTextSize(1);
@@ -170,19 +165,35 @@ void drawMenu(Menu& m, Box& n){
     display.println(m.name);
 
     int8_t i;
-    if(value <= 2){
-      i = 0;
+    int8_t lim;
+
+    if(m.notifBox == true){
+      if(value <= 2){
+        i = 0;
+      } else {
+        i = 2 + 1 * int8_t(value / 3);
+      }
+
+      lim = i + 2;
+      drawNotfBox(n);
+
     } else {
-      i = 2 + 1 * int8_t(value / 3);
+      if(value <= 3){
+        i = 0;
+      } else {
+        i = 2 + 2 * int8_t(value / 4);
+      }
+      lim = i + 3;
+      Serial.print(i);
     }
-    int8_t lim = i + 2;
 
     display.setCursor(0, 12);
+
     while(i <= lim){
-      if(i <= m.vleMax){
+      if(i <= max){
         if(value == i){
           display.print("-> "); display.print(m.colum1[i]);
-          if(i == m.vleMax){
+          if(i == max){
             display.print("");
           } else {
             if(m.colum2[i] < 10){
@@ -199,43 +210,10 @@ void drawMenu(Menu& m, Box& n){
       }
       i++;
     }
-    /**
-    for(int i = ip; i < (3 + ip); i++){
-      
-      if(value == i){
-        display.print("-> ");display.println(m.colum1[i]);
-      } else {
-        display.print("> ");display.println(m.colum1[i]);
-      }
 
-    }
-
-    for(int i = ip; i < (3 + ip); i++){
-
-      int8_t y = 12 + (8 * mult);
-
-      display.setCursor(65, y);    
-      
-      if(i == m.vleMax){
-        display.print("");
-      } else {
-        if(m.colum2[i] < 10){
-          display.print("x0"); display.println(m.colum2[i]);
-        } else {
-          display.print("x"); display.println(m.colum2[i]);
-        }
-      }
-
-      mult += 1;
-    **/
-    if(m.notifBox == true){
-      drawNotfBox(n);
-    }
-
-    showCardapio = sair(showCardapio, value, m.vleMax);
+    showCardapio = sair(showCardapio, value, max);
     //Serial.print("teste string.length: ");
     //Serial.println(m.colum1[0].length());
-
 
     display.display();
     display.clearDisplay();

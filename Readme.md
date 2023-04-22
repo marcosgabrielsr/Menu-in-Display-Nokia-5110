@@ -1,5 +1,5 @@
 - Menu para Nokia Display 5110 84x48
-- version: 1.2.1
-- Descrição: Nesta versão foram feitas as atualizações para que ambas as colunas fossem imprimidas na tela pelo mesmo laço de repetição, desta forma deixando o código mais otimizado.
-- Nota: Para próxima versão planejo deixar o código mais otimizado retirando as variáveis de valores min e max e optando por utilizar o tamanho do array que contém os valores
+- version: 1.3.0
+- Descrição da Versão: Nesta versão foram retiaradas os dados de vleMin e vleMax da struct Menu, desta forma para que sejam feita a impressão do menu segundo o total de itens da coluna é utilizado o sizeof na coluna2
+- Notas para próxima atualização: Para próxima atualização planejo adicionar o método de tipos de menu, podendo ter menus como o cardápio e os menus de rolagem de dados, como se girasse um potênciometro
 - OBS: Este tipo de menu está sendo desenvolvido para ser utilizado no meu jogo (um clone dos famigerados tamagotchi), entretanto pode ser utilizado para outros fins
