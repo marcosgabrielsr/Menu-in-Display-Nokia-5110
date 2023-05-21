@@ -1,3 +1,3 @@
 - Menu para Nokia Display 5110 84x48
-- version: 1.1
+- version: 1.3
 - Descrição: Nesta versão foram feitas as atualizações para que os dados fossem salvos em structs ao invés de strings
